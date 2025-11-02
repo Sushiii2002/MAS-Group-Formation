@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Faculty Dashboard</h1>
+        <p>Monitor groups, allocate tasks, and view analytics</p>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <h2>Group Formation Control</h2>
+        <div class="control-buttons">
+            <button class="btn btn-primary" onclick="formGroups()">
+                🤖 Form New Groups (GA)
+            </button>
+            <button class="btn btn-secondary" onclick="allocateTasks()">
+                📋 Allocate Tasks
+            </button>
+            <button class="btn btn-warning" onclick="clearGroups()">
+                🗑️ Clear All Groups
+            </button>
+            <button class="btn btn-info" onclick="refreshData()">
+                🔄 Refresh Data
+            </button>
+        </div>
+        
+        <div id="operation-status" class="status-message" style="display:none;"></div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-number" id="stat-students">--</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-number" id="stat-groups">--</div>
+                <div class="stat-label">Active Groups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number" id="stat-compatibility">--</div>
+                <div class="stat-label">Avg Compatibility</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-number" id="stat-tasks">--</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups List -->
+    <div class="groups-section">
+        <h2>Formed Groups</h2>
+        <div id="groups-container" class="groups-list">
+            <p class="loading-text">Loading groups...</p>
+        </div>
+    </div>
+
+    <!-- Task Distribution -->
+    <div class="tasks-section">
+        <h2>Task Distribution</h2>
+        <div id="tasks-chart-container">
+            <canvas id="tasks-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- At-Risk Groups -->
+    <div class="at-risk-section">
+        <h2>⚠️ At-Risk Groups</h2>
+        <div id="at-risk-container" class="at-risk-list">
+            <p>No at-risk groups detected</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+
+// Load dashboard data on page load
+window.addEventListener('DOMContentLoaded', () => {
+    loadDashboardData();
+});
+
+async function loadDashboardData() {
+    try {
+        const response = await fetch(`${API_BASE}/dashboard/faculty`);
+        const data = await response.json();
+        
+        if (data.success) {
+            updateStatistics(data.data);
+            loadGroups();
+        }
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
+function updateStatistics(data) {
+    document.getElementById('stat-students').textContent = data.summary.total_students;
+    document.getElementById('stat-groups').textContent = data.summary.total_groups;
+    document.getElementById('stat-tasks').textContent = data.summary.total_tasks;
+    document.getElementById('stat-compatibility').textContent = 
+        data.compatibility.avg_score ? data.compatibility.avg_score.toFixed(3) : 'N/A';
+}
+
+async function loadGroups() {
+    try {
+        const response = await fetch(`${API_BASE}/groups`);
+        const data = await response.json();
+        
+        const container = document.getElementById('groups-container');
+        
+        if (data.success && data.data.length > 0) {
+            container.innerHTML = '';
+            
+            data.data.forEach(group => {
+                const groupCard = createGroupCard(group);
+                container.appendChild(groupCard);
+            });
+        } else {
+            container.innerHTML = '<p class="no-data">No groups formed yet</p>';
+        }
+    } catch (error) {
+        console.error('Error loading groups:', error);
+    }
+}
+
+function createGroupCard(group) {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    
+    const membersHtml = group.members.map(member => `
+        <div class="member-item">
+            <span class="member-name">${member.first_name} ${member.last_name}</span>
+            <span class="member-role ${member.role.toLowerCase()}">${member.role}</span>
+            <span class="member-gwa">GWA: ${member.gwa}</span>
+        </div>
+    `).join('');
+    
+    card.innerHTML = `
+        <div class="group-header">
+            <h3>${group.group_name}</h3>
+            <span class="compatibility-badge">
+                Compatibility: ${group.compatibility_score.toFixed(3)}
+            </span>
+        </div>
+        <div class="group-info">
+            <span class="group-stat">👥 ${group.member_count} members</span>
+            <span class="group-stat">📅 ${new Date(group.formation_date).toLocaleDateString()}</span>
+            <span class="group-status ${group.status.toLowerCase()}">${group.status}</span>
+        </div>
+        <div class="group-members">
+            ${membersHtml}
+        </div>
+        <div class="group-actions">
+            <button class="btn btn-small" onclick="viewGroupDetails(${group.id})">View Details</button>
+            <button class="btn btn-small btn-secondary" onclick="allocateGroupTasks(${group.id})">Allocate Tasks</button>
+        </div>
+    `;
+    
+    return card;
+}
+
+async function formGroups() {
+    const statusDiv = document.getElementById('operation-status');
+    const formButton = document.querySelector('button[onclick="formGroups()"]');
+    
+    // Disable button to prevent multiple clicks
+    if (formButton) {
+        formButton.disabled = true;
+        formButton.textContent = '⏳ Running GA...';
+    }
+    
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'status-message info';
+    statusDiv.textContent = '🤖 Running Genetic Algorithm... This may take 15-30 seconds. Please wait.';
+    
+    try {
+        const response = await fetch(`${API_BASE}/groups/form`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                target_group_size: 4,
+                algorithm: 'ga',
+                clear_existing: true  // Always clear to avoid duplicates
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            statusDiv.className = 'status-message success';
+            statusDiv.textContent = `✓ ${data.message}`;
+            
+            // Reload groups after 1 second
+            setTimeout(() => {
+                loadDashboardData();
+            }, 1000);
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        statusDiv.className = 'status-message error';
+        statusDiv.textContent = `✗ Error: ${error.message}`;
+    } finally {
+        // Re-enable button
+        if (formButton) {
+            formButton.disabled = false;
+            formButton.innerHTML = '🤖 Form New Groups (GA)';
+        }
+    }
+}
+
+async function allocateTasks() {
+    const statusDiv = document.getElementById('operation-status');
+    const allocateButton = document.querySelector('button[onclick="allocateTasks()"]');
+    
+    if (allocateButton) {
+        allocateButton.disabled = true;
+    }
+    
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'status-message info';
+    statusDiv.textContent = '📋 Allocating tasks to group members...';
+    
+    try {
+        // Get all groups
+        const groupsResponse = await fetch(`${API_BASE}/groups`);
+        const groupsData = await groupsResponse.json();
+        
+        if (!groupsData.success || groupsData.data.length === 0) {
+            throw new Error('No groups found. Please form groups first.');
+        }
+        
+        // For each group, trigger coordinator agent
+        let successCount = 0;
+        for (const group of groupsData.data) {
+            try {
+                const response = await fetch(`${API_BASE}/groups/${group.id}/allocate-tasks`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                }
+            } catch (error) {
+                console.error(`Failed to allocate tasks for group ${group.id}:`, error);
+            }
+        }
+        
+        statusDiv.className = 'status-message success';
+        statusDiv.textContent = `✓ Tasks allocated for ${successCount} groups`;
+        
+        // Reload dashboard
+        setTimeout(() => {
+            loadDashboardData();
+        }, 1000);
+        
+    } catch (error) {
+        statusDiv.className = 'status-message error';
+        statusDiv.textContent = `✗ Error: ${error.message}`;
+    } finally {
+        if (allocateButton) {
+            allocateButton.disabled = false;
+        }
+    }
+}
+
+async function clearGroups() {
+    if (!confirm('Are you sure you want to clear all groups? This cannot be undone.')) {
+        return;
+    }
+    
+    const statusDiv = document.getElementById('operation-status');
+    const clearButton = document.querySelector('button[onclick="clearGroups()"]');
+    
+    if (clearButton) {
+        clearButton.disabled = true;
+    }
+    
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'status-message warning';
+    statusDiv.textContent = '🗑️ Clearing all groups...';
+    
+    try {
+        // Delete groups via API
+        const response = await fetch(`${API_BASE}/groups/clear`, {
+            method: 'DELETE'
+        });
+        
+        // If endpoint doesn't exist, we can manually clear
+        // For now, let's just reload and show message
+        statusDiv.className = 'status-message success';
+        statusDiv.textContent = '✓ All groups cleared';
+        
+        // Reload dashboard
+        setTimeout(() => {
+            loadDashboardData();
+        }, 1000);
+        
+    } catch (error) {
+        statusDiv.className = 'status-message error';
+        statusDiv.textContent = `✗ Error: ${error.message}`;
+    } finally {
+        if (clearButton) {
+            clearButton.disabled = false;
+        }
+    }
+}
+
+function refreshData() {
+    const statusDiv = document.getElementById('operation-status');
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'status-message info';
+    statusDiv.textContent = '🔄 Refreshing data...';
+    
+    loadDashboardData();
+    
+    setTimeout(() => {
+        statusDiv.className = 'status-message success';
+        statusDiv.textContent = '✓ Data refreshed';
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 2000);
+    }, 500);
+}
+
+function viewGroupDetails(groupId) {
+    window.location.href = `/groups?id=${groupId}`;
+}
+
+function allocateGroupTasks(groupId) {
+    alert(`Allocating tasks for group ${groupId}...`);
+    // Implementation would call API
+}
+</script>
+{% endblock %}

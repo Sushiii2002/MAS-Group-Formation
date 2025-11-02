@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Student Dashboard</h1>
+        <div class="student-selector">
+            <label for="student-select">Select Student:</label>
+            <select id="student-select" onchange="loadStudentData()">
+                <option value="">Loading students...</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Student Info Card -->
+    <div class="student-info-card">
+        <div class="student-header">
+            <div class="student-avatar">👤</div>
+            <div class="student-details">
+                <h2 id="student-name">--</h2>
+                <p id="student-number">--</p>
+                <p id="student-email">--</p>
+            </div>
+            <div class="student-gwa">
+                <div class="gwa-label">GWA</div>
+                <div class="gwa-value" id="student-gwa">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Information -->
+    <div class="group-info-section">
+        <h2>My Group</h2>
+        <div id="group-info-container">
+            <p class="loading-text">Loading group information...</p>
+        </div>
+    </div>
+
+    <!-- My Tasks -->
+    <div class="tasks-section">
+        <h2>My Assigned Tasks</h2>
+        <div id="tasks-container" class="tasks-grid">
+            <p class="loading-text">Loading tasks...</p>
+        </div>
+    </div>
+
+    <!-- Workload Summary -->
+    <div class="workload-section">
+        <h2>Workload Summary</h2>
+        <div class="workload-card">
+            <div class="workload-stat">
+                <span class="workload-label">Total Tasks</span>
+                <span class="workload-value" id="total-tasks">--</span>
+            </div>
+            <div class="workload-stat">
+                <span class="workload-label">Estimated Hours</span>
+                <span class="workload-value" id="total-hours">--</span>
+            </div>
+            <div class="workload-stat">
+                <span class="workload-label">Completed</span>
+                <span class="workload-value" id="completed-tasks">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Members -->
+    <div class="members-section">
+        <h2>Group Members</h2>
+        <div id="members-container" class="members-grid">
+            <p class="loading-text">Loading group members...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+let currentStudentId = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadStudentsList();
+});
+
+async function loadStudentsList() {
+    try {
+        const response = await fetch(`${API_BASE}/students`);
+        const data = await response.json();
+        
+        const select = document.getElementById('student-select');
+        select.innerHTML = '<option value="">Select a student</option>';
+        
+        if (data.success && data.data.length > 0) {
+            data.data.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.id;
+                option.textContent = `${student.first_name} ${student.last_name} (${student.student_number})`;
+                select.appendChild(option);
+            });
+            
+            // Auto-select first student
+            select.value = data.data[0].id;
+            loadStudentData();
+        }
+    } catch (error) {
+        console.error('Error loading students:', error);
+    }
+}
+
+async function loadStudentData() {
+    const studentId = document.getElementById('student-select').value;
+    
+    if (!studentId) return;
+    
+    currentStudentId = studentId;
+    
+    try {
+        // Load student profile
+        const profileResponse = await fetch(`${API_BASE}/students/${studentId}`);
+        const profileData = await profileResponse.json();
+        
+        if (profileData.success) {
+            updateStudentInfo(profileData.data);
+        }
+        
+        // Load dashboard data
+        const dashboardResponse = await fetch(`${API_BASE}/dashboard/student/${studentId}`);
+        const dashboardData = await dashboardResponse.json();
+        
+        if (dashboardData.success) {
+            updateDashboard(dashboardData.data);
+        }
+    } catch (error) {
+        console.error('Error loading student data:', error);
+    }
+}
+
+function updateStudentInfo(student) {
+    document.getElementById('student-name').textContent = 
+        `${student.first_name} ${student.last_name}`;
+    document.getElementById('student-number').textContent = student.student_number;
+    document.getElementById('student-email').textContent = student.email;
+    document.getElementById('student-gwa').textContent = student.gwa.toFixed(2);
+}
+
+function updateDashboard(data) {
+    // Update group info
+    const groupContainer = document.getElementById('group-info-container');
+    
+    if (data.group) {
+        groupContainer.innerHTML = `
+            <div class="group-card-simple">
+                <h3>${data.group.group_name}</h3>
+                <p>Role: <strong>${data.group.role}</strong></p>
+                <p>Compatibility Score: <strong>${data.group.compatibility_score.toFixed(3)}</strong></p>
+                <p>Members: <strong>${data.group_members.length}</strong></p>
+            </div>
+        `;
+    } else {
+        groupContainer.innerHTML = '<p class="no-data">Not assigned to any group yet</p>';
+    }
+    
+    // Update tasks
+    const tasksContainer = document.getElementById('tasks-container');
+    
+    if (data.tasks && data.tasks.length > 0) {
+        tasksContainer.innerHTML = '';
+        
+        data.tasks.forEach(task => {
+            const taskCard = createTaskCard(task);
+            tasksContainer.appendChild(taskCard);
+        });
+        
+        // Update workload stats
+        document.getElementById('total-tasks').textContent = data.tasks.length;
+        document.getElementById('total-hours').textContent = data.total_hours;
+        document.getElementById('completed-tasks').textContent = 
+            data.tasks.filter(t => t.status === 'Completed').length;
+    } else {
+        tasksContainer.innerHTML = '<p class="no-data">No tasks assigned yet</p>';
+        document.getElementById('total-tasks').textContent = '0';
+        document.getElementById('total-hours').textContent = '0';
+        document.getElementById('completed-tasks').textContent = '0';
+    }
+    
+    // Update group members
+    const membersContainer = document.getElementById('members-container');
+    
+    if (data.group_members && data.group_members.length > 0) {
+        membersContainer.innerHTML = '';
+        
+        data.group_members.forEach(member => {
+            const memberCard = document.createElement('div');
+            memberCard.className = 'member-card';
+            memberCard.innerHTML = `
+                <div class="member-avatar">👤</div>
+                <div class="member-info">
+                    <h4>${member.first_name} ${member.last_name}</h4>
+                    <p class="member-role ${member.role.toLowerCase()}">${member.role}</p>
+                </div>
+            `;
+            membersContainer.appendChild(memberCard);
+        });
+    } else {
+        membersContainer.innerHTML = '<p class="no-data">No group members</p>';
+    }
+}
+
+function createTaskCard(task) {
+    const card = document.createElement('div');
+    card.className = `task-card status-${task.status.toLowerCase().replace(' ', '-')}`;
+    
+    const deadline = new Date(task.deadline);
+    const today = new Date();
+    const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+    
+    card.innerHTML = `
+        <div class="task-header">
+            <h4>${task.task_name}</h4>
+            <span class="task-status ${task.status.toLowerCase().replace(' ', '-')}">
+                ${task.status}
+            </span>
+        </div>
+        <p class="task-description">${task.description}</p>
+        <div class="task-meta">
+            <span>⏱️ ${task.estimated_hours}h</span>
+            <span>📅 ${daysLeft > 0 ? `${daysLeft} days left` : 'Overdue'}</span>
+        </div>
+        <div class="task-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${task.completion_percentage}%"></div>
+            </div>
+            <span class="progress-text">${task.completion_percentage}%</span>
+        </div>
+        <button class="btn btn-small" onclick="updateTaskProgress(${task.id}, ${task.completion_percentage})">
+            Update Progress
+        </button>
+    `;
+    
+    return card;
+}
+
+function updateTaskProgress(taskId, currentProgress) {
+    const newProgress = prompt(`Enter completion percentage (current: ${currentProgress}%):`, currentProgress);
+    
+    if (newProgress !== null) {
+        const percentage = parseInt(newProgress);
+        
+        if (percentage >= 0 && percentage <= 100) {
+            // Call API to update
+            fetch(`${API_BASE}/tasks/${taskId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    completion_percentage: percentage,
+                    status: percentage === 100 ? 'Completed' : 'In Progress'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Progress updated successfully!');
+                    loadStudentData();
+                }
+            });
+        } else {
+            alert('Please enter a value between 0 and 100');
+        }
+    }
+}
+</script>
+{% endblock %}

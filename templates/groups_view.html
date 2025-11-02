@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}View Groups{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Formed Groups</h1>
+        <p>View all groups and their members</p>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-group">
+            <label for="status-filter">Filter by Status:</label>
+            <select id="status-filter" onchange="filterGroups()">
+                <option value="all">All Groups</option>
+                <option value="Active" selected>Active</option>
+                <option value="Completed">Completed</option>
+                <option value="Disbanded">Disbanded</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="sort-by">Sort by:</label>
+            <select id="sort-by" onchange="sortGroups()">
+                <option value="name">Group Name</option>
+                <option value="compatibility" selected>Compatibility Score</option>
+                <option value="date">Formation Date</option>
+                <option value="members">Member Count</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="groups-grid" class="groups-display-grid">
+        <p class="loading-text">Loading groups...</p>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+let allGroups = [];
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadGroups();
+});
+
+async function loadGroups() {
+    try {
+        const response = await fetch(`${API_BASE}/groups`);
+        const data = await response.json();
+        
+        if (data.success) {
+            allGroups = data.data;
+            displayGroups(allGroups);
+        }
+    } catch (error) {
+        console.error('Error loading groups:', error);
+        document.getElementById('groups-grid').innerHTML = 
+            '<p class="error-text">Error loading groups</p>';
+    }
+}
+
+function displayGroups(groups) {
+    const container = document.getElementById('groups-grid');
+    
+    if (groups.length === 0) {
+        container.innerHTML = '<p class="no-data">No groups found</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    groups.forEach(group => {
+        const groupCard = createGroupDisplayCard(group);
+        container.appendChild(groupCard);
+    });
+}
+
+function createGroupDisplayCard(group) {
+    const card = document.createElement('div');
+    card.className = 'group-display-card';
+    
+    const membersHtml = group.members.map(member => `
+        <li class="member-list-item">
+            <span class="member-icon">${member.role === 'Leader' ? '👑' : '👤'}</span>
+            <span class="member-name">${member.first_name} ${member.last_name}</span>
+            <span class="member-gwa">GWA: ${member.gwa}</span>
+        </li>
+    `).join('');
+    
+    card.innerHTML = `
+        <div class="group-card-header">
+            <h3>${group.group_name}</h3>
+            <div class="group-badges">
+                <span class="badge badge-compatibility">
+                    ⭐ ${group.compatibility_score.toFixed(3)}
+                </span>
+                <span class="badge badge-status ${group.status.toLowerCase()}">
+                    ${group.status}
+                </span>
+            </div>
+        </div>
+        
+        <div class="group-card-body">
+            <div class="group-meta">
+                <span>👥 ${group.member_count} members</span>
+                <span>📅 ${new Date(group.formation_date).toLocaleDateString()}</span>
+            </div>
+            
+            <div class="members-list">
+                <h4>Members:</h4>
+                <ul>
+                    ${membersHtml}
+                </ul>
+            </div>
+            
+            ${group.project_title ? `
+                <div class="project-title">
+                    <strong>Project:</strong> ${group.project_title}
+                </div>
+            ` : ''}
+        </div>
+        
+        <div class="group-card-footer">
+            <button class="btn btn-small btn-info" onclick="viewGroupDetails(${group.id})">
+                View Full Details
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+function filterGroups() {
+    const status = document.getElementById('status-filter').value;
+    
+    let filtered = allGroups;
+    
+    if (status !== 'all') {
+        filtered = allGroups.filter(g => g.status === status);
+    }
+    
+    displayGroups(filtered);
+}
+
+function sortGroups() {
+    const sortBy = document.getElementById('sort-by').value;
+    const status = document.getElementById('status-filter').value;
+    
+    let filtered = status === 'all' ? [...allGroups] : 
+                   allGroups.filter(g => g.status === status);
+    
+    switch(sortBy) {
+        case 'name':
+            filtered.sort((a, b) => a.group_name.localeCompare(b.group_name));
+            break;
+        case 'compatibility':
+            filtered.sort((a, b) => b.compatibility_score - a.compatibility_score);
+            break;
+        case 'date':
+            filtered.sort((a, b) => new Date(b.formation_date) - new Date(a.formation_date));
+            break;
+        case 'members':
+            filtered.sort((a, b) => b.member_count - a.member_count);
+            break;
+    }
+    
+    displayGroups(filtered);
+}
+
+function viewGroupDetails(groupId) {
+    alert(`Viewing details for group ${groupId}...`);
+    // In a real implementation, this would open a modal or new page
+}
+</script>
+{% endblock %}

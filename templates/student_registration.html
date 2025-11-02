@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Student Registration{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        <h1>Student Registration</h1>
+        <p class="form-description">Register your profile for capstone project group formation</p>
+        
+        <form id="registration-form" class="registration-form">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h2>Basic Information</h2>
+                
+                <div class="form-group">
+                    <label for="student-number">Student Number *</label>
+                    <input type="text" id="student-number" name="student_number" 
+                           placeholder="2021-12345" required
+                           aria-required="true">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first-name">First Name *</label>
+                        <input type="text" id="first-name" name="first_name" 
+                               placeholder="Juan" required
+                               aria-required="true">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="last-name">Last Name *</label>
+                        <input type="text" id="last-name" name="last_name" 
+                               placeholder="Dela Cruz" required
+                               aria-required="true">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" 
+                           placeholder="juan.delacruz@tip.edu.ph" required
+                           aria-required="true">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gwa">GWA *</label>
+                        <input type="number" id="gwa" name="gwa" 
+                               min="1.00" max="5.00" step="0.01" 
+                               placeholder="1.75" required
+                               aria-required="true">
+                        <small>Enter your General Weighted Average (1.00 - 5.00)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="year-level">Year Level *</label>
+                        <select id="year-level" name="year_level" required
+                                aria-required="true">
+                            <option value="">Select Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                            <option value="5">5th Year</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Skills -->
+            <div class="form-section">
+                <h2>Technical Skills</h2>
+                <p class="section-help">Select your technical skills and proficiency levels</p>
+                
+                <div id="skills-container">
+                    <div class="skill-entry">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="skill-1">Skill</label>
+                                <select id="skill-1" name="skills[]" class="skill-select">
+                                    <option value="">Select Skill</option>
+                                    <option value="Python">Python</option>
+                                    <option value="Java">Java</option>
+                                    <option value="JavaScript">JavaScript</option>
+                                    <option value="HTML/CSS">HTML/CSS</option>
+                                    <option value="React">React</option>
+                                    <option value="Node.js">Node.js</option>
+                                    <option value="MySQL">MySQL</option>
+                                    <option value="MongoDB">MongoDB</option>
+                                    <option value="Git">Git</option>
+                                    <option value="Docker">Docker</option>
+                                    <option value="Flask">Flask</option>
+                                    <option value="Django">Django</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="proficiency-1">Proficiency</label>
+                                <select id="proficiency-1" name="proficiency[]" class="proficiency-select">
+                                    <option value="">Select Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                    <option value="Expert">Expert</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="years-1">Years</label>
+                                <input type="number" id="years-1" name="years[]" 
+                                       min="0" max="10" step="0.5" 
+                                       placeholder="1.5" class="years-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="addSkillEntry()">
+                    + Add Another Skill
+                </button>
+            </div>
+
+            <!-- Personality Traits -->
+            <div class="form-section">
+                <h2>Personality Assessment</h2>
+                <p class="section-help">Rate yourself on the following traits (1 = Low, 5 = High)</p>
+                
+                <div class="trait-group">
+                    <label for="openness">Openness to Experience</label>
+                    <div class="range-container">
+                        <input type="range" id="openness" name="openness" 
+                               min="1" max="5" value="3" class="trait-slider"
+                               oninput="updateRangeValue(this)">
+                        <span class="range-value">3</span>
+                    </div>
+                    <small>Curious, creative, open to new experiences</small>
+                </div>
+                
+                <div class="trait-group">
+                    <label for="conscientiousness">Conscientiousness</label>
+                    <div class="range-container">
+                        <input type="range" id="conscientiousness" name="conscientiousness" 
+                               min="1" max="5" value="3" class="trait-slider"
+                               oninput="updateRangeValue(this)">
+                        <span class="range-value">3</span>
+                    </div>
+                    <small>Organized, responsible, hardworking</small>
+                </div>
+                
+                <div class="trait-group">
+                    <label for="extraversion">Extraversion</label>
+                    <div class="range-container">
+                        <input type="range" id="extraversion" name="extraversion" 
+                               min="1" max="5" value="3" class="trait-slider"
+                               oninput="updateRangeValue(this)">
+                        <span class="range-value">3</span>
+                    </div>
+                    <small>Outgoing, energetic, talkative</small>
+                </div>
+                
+                <div class="trait-group">
+                    <label for="agreeableness">Agreeableness</label>
+                    <div class="range-container">
+                        <input type="range" id="agreeableness" name="agreeableness" 
+                               min="1" max="5" value="3" class="trait-slider"
+                               oninput="updateRangeValue(this)">
+                        <span class="range-value">3</span>
+                    </div>
+                    <small>Friendly, cooperative, compassionate</small>
+                </div>
+                
+                <div class="trait-group">
+                    <label for="neuroticism">Emotional Stability</label>
+                    <div class="range-container">
+                        <input type="range" id="neuroticism" name="neuroticism" 
+                               min="1" max="5" value="3" class="trait-slider"
+                               oninput="updateRangeValue(this)">
+                        <span class="range-value">3</span>
+                    </div>
+                    <small>Calm, resilient, emotionally stable</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="learning-style">Preferred Learning Style</label>
+                    <select id="learning-style" name="learning_style">
+                        <option value="Visual">Visual (diagrams, charts)</option>
+                        <option value="Auditory">Auditory (lectures, discussions)</option>
+                        <option value="Reading/Writing">Reading/Writing (notes, documents)</option>
+                        <option value="Kinesthetic">Kinesthetic (hands-on, practice)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Schedule Availability -->
+            <div class="form-section">
+                <h2>Schedule Availability</h2>
+                <p class="section-help">Select your available time slots for group meetings</p>
+                
+                <div class="availability-grid">
+                    <div class="availability-header">
+                        <div></div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+                    
+                    <div class="availability-row">
+                        <div class="time-label">8-10 AM</div>
+                        <div><input type="checkbox" name="avail[]" value="Monday_8:00-10:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Tuesday_8:00-10:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Wednesday_8:00-10:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Thursday_8:00-10:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Friday_8:00-10:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Saturday_8:00-10:00"></div>
+                    </div>
+                    
+                    <div class="availability-row">
+                        <div class="time-label">10-12 PM</div>
+                        <div><input type="checkbox" name="avail[]" value="Monday_10:00-12:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Tuesday_10:00-12:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Wednesday_10:00-12:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Thursday_10:00-12:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Friday_10:00-12:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Saturday_10:00-12:00"></div>
+                    </div>
+                    
+                    <div class="availability-row">
+                        <div class="time-label">1-3 PM</div>
+                        <div><input type="checkbox" name="avail[]" value="Monday_13:00-15:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Tuesday_13:00-15:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Wednesday_13:00-15:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Thursday_13:00-15:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Friday_13:00-15:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Saturday_13:00-15:00"></div>
+                    </div>
+                    
+                    <div class="availability-row">
+                        <div class="time-label">3-5 PM</div>
+                        <div><input type="checkbox" name="avail[]" value="Monday_15:00-17:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Tuesday_15:00-17:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Wednesday_15:00-17:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Thursday_15:00-17:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Friday_15:00-17:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Saturday_15:00-17:00"></div>
+                    </div>
+                    
+                    <div class="availability-row">
+                        <div class="time-label">5-7 PM</div>
+                        <div><input type="checkbox" name="avail[]" value="Monday_17:00-19:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Tuesday_17:00-19:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Wednesday_17:00-19:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Thursday_17:00-19:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Friday_17:00-19:00"></div>
+                        <div><input type="checkbox" name="avail[]" value="Saturday_17:00-19:00"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    Register Profile
+                </button>
+            </div>
+        </form>
+        
+        <div id="success-message" class="alert alert-success" style="display:none;">
+            <h3>✓ Registration Successful!</h3>
+            <p>Your profile has been created. You'll be included in the next group formation.</p>
+        </div>
+        
+        <div id="error-message" class="alert alert-error" style="display:none;">
+            <h3>✗ Registration Failed</h3>
+            <p id="error-text"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+let skillCounter = 1;
+
+function addSkillEntry() {
+    skillCounter++;
+    const container = document.getElementById('skills-container');
+    const newEntry = document.createElement('div');
+    newEntry.className = 'skill-entry';
+    newEntry.innerHTML = `
+        <div class="form-row">
+            <div class="form-group">
+                <label for="skill-${skillCounter}">Skill</label>
+                <select id="skill-${skillCounter}" name="skills[]" class="skill-select">
+                    <option value="">Select Skill</option>
+                    <option value="Python">Python</option>
+                    <option value="Java">Java</option>
+                    <option value="JavaScript">JavaScript</option>
+                    <option value="HTML/CSS">HTML/CSS</option>
+                    <option value="React">React</option>
+                    <option value="Node.js">Node.js</option>
+                    <option value="MySQL">MySQL</option>
+                    <option value="MongoDB">MongoDB</option>
+                    <option value="Git">Git</option>
+                    <option value="Docker">Docker</option>
+                    <option value="Flask">Flask</option>
+                    <option value="Django">Django</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="proficiency-${skillCounter}">Proficiency</label>
+                <select id="proficiency-${skillCounter}" name="proficiency[]" class="proficiency-select">
+                    <option value="">Select Level</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Expert">Expert</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="years-${skillCounter}">Years</label>
+                <input type="number" id="years-${skillCounter}" name="years[]" 
+                       min="0" max="10" step="0.5" 
+                       placeholder="1.5" class="years-input">
+            </div>
+            <button type="button" class="btn-remove" onclick="removeSkillEntry(this)">✕</button>
+        </div>
+    `;
+    container.appendChild(newEntry);
+}
+
+function removeSkillEntry(button) {
+    button.closest('.skill-entry').remove();
+}
+
+function updateRangeValue(slider) {
+    const valueSpan = slider.nextElementSibling;
+    valueSpan.textContent = slider.value;
+}
+
+document.getElementById('registration-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const successMsg = document.getElementById('success-message');
+    const errorMsg = document.getElementById('error-message');
+    
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+    
+    try {
+        // Create student
+        const studentData = {
+            student_number: formData.get('student_number'),
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name'),
+            email: formData.get('email'),
+            gwa: parseFloat(formData.get('gwa')),
+            year_level: parseInt(formData.get('year_level')),
+            program: 'Computer Science'
+        };
+        
+        const studentResponse = await fetch('http://localhost:5000/api/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(studentData)
+        });
+        
+        const studentResult = await studentResponse.json();
+        
+        if (!studentResult.success) {
+            throw new Error(studentResult.message);
+        }
+        
+        const studentId = studentResult.data.id;
+        
+        // Add skills
+        const skills = [];
+        const skillSelects = document.querySelectorAll('.skill-select');
+        const proficiencySelects = document.querySelectorAll('.proficiency-select');
+        const yearsInputs = document.querySelectorAll('.years-input');
+        
+        for (let i = 0; i < skillSelects.length; i++) {
+            if (skillSelects[i].value && proficiencySelects[i].value) {
+                skills.push({
+                    skill_name: skillSelects[i].value,
+                    proficiency_level: proficiencySelects[i].value,
+                    years_experience: parseFloat(yearsInputs[i].value) || 0
+                });
+            }
+        }
+        
+        if (skills.length > 0) {
+            await fetch(`http://localhost:5000/api/students/${studentId}/skills`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skills })
+            });
+        }
+        
+        // Add personality traits (you would add this endpoint to your API)
+        // For now, we'll skip this part
+        
+        // Show success
+        successMsg.style.display = 'block';
+        e.target.reset();
+        window.scrollTo(0, 0);
+        
+    } catch (error) {
+        errorMsg.style.display = 'block';
+        document.getElementById('error-text').textContent = error.message;
+        window.scrollTo(0, 0);
+    }
+});
+</script>
+{% endblock %}

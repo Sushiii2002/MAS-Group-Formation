@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAS API Test Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .loading {
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e74c3c;
+            border-left-color: #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            border-left-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 MAS API Test Interface</h1>
+        
+        <div class="section">
+            <h2>System Status</h2>
+            <button onclick="testHealth()">Check API Health</button>
+            <div id="health-result" class="result" style="display:none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Students</h2>
+            <button onclick="getStudents()">Get All Students</button>
+            <button onclick="getStudent(1)">Get Student #1 Profile</button>
+            <div id="students-result" class="result" style="display:none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Groups</h2>
+            <button onclick="getGroups()">Get All Groups</button>
+            <button onclick="formGroups()">Form New Groups (GA)</button>
+            <div id="groups-result" class="result" style="display:none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Tasks</h2>
+            <button onclick="getTasks()">Get All Tasks</button>
+            <div id="tasks-result" class="result" style="display:none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Dashboard</h2>
+            <button onclick="getFacultyDashboard()">Faculty Dashboard</button>
+            <button onclick="getStudentDashboard(1)">Student #1 Dashboard</button>
+            <div id="dashboard-result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isError ? 'error' : 'success');
+            element.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+        
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result loading';
+            element.innerHTML = '<pre>Loading...</pre>';
+        }
+        
+        async function apiCall(endpoint, resultId, options = {}) {
+            showLoading(resultId);
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+                showResult(resultId, data, !data.success);
+            } catch (error) {
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+        
+        // API Functions
+        function testHealth() {
+            apiCall('/health', 'health-result');
+        }
+        
+        function getStudents() {
+            apiCall('/students', 'students-result');
+        }
+        
+        function getStudent(id) {
+            apiCall(`/students/${id}`, 'students-result');
+        }
+        
+        function getGroups() {
+            apiCall('/groups', 'groups-result');
+        }
+        
+        async function formGroups() {
+            await apiCall('/groups/form', 'groups-result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_group_size: 4,
+                    algorithm: 'ga',
+                    clear_existing: false
+                })
+            });
+        }
+        
+        function getTasks() {
+            apiCall('/tasks', 'tasks-result');
+        }
+        
+        function getFacultyDashboard() {
+            apiCall('/dashboard/faculty', 'dashboard-result');
+        }
+        
+        function getStudentDashboard(id) {
+            apiCall(`/dashboard/student/${id}`, 'dashboard-result');
+        }
+    </script>
+</body>
+</html>
