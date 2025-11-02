@@ -36,8 +36,9 @@
     </div>
 </div>
 
+<script src="/static/js/main.js"></script>
 <script>
-const API_BASE = 'http://localhost:5000/api';
+// Groups page specific code
 let allGroups = [];
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -46,11 +47,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function loadGroups() {
     try {
-        const response = await fetch(`${API_BASE}/groups`);
-        const data = await response.json();
+        const response = await apiRequest('/groups');
         
-        if (data.success) {
-            allGroups = data.data;
+        if (response.success) {
+            allGroups = response.data;
             displayGroups(allGroups);
         }
     } catch (error) {
@@ -166,11 +166,6 @@ function sortGroups() {
     }
     
     displayGroups(filtered);
-}
-
-function viewGroupDetails(groupId) {
-    alert(`Viewing details for group ${groupId}...`);
-    // In a real implementation, this would open a modal or new page
 }
 </script>
 {% endblock %}

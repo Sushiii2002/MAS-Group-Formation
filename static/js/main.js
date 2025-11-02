@@ -2,7 +2,7 @@
 // MAS GROUP FORMATION SYSTEM - MAIN JAVASCRIPT
 // ============================================================
 
-// Configuration
+// Configuration - DECLARE ONLY ONCE
 const API_BASE = 'http://localhost:5000/api';
 
 // ============================================================
@@ -545,75 +545,157 @@ async function refreshData() {
 // ============================================================
 
 /**
- * View group details
+ * View group details in a modal
  * @param {number} groupId - Group ID
  */
 async function viewGroupDetails(groupId) {
     try {
-        // Fetch group details
-        const response = await fetch(`${API_BASE}/groups/${groupId}`);
-        const data = await response.json();
+        showLoadingModal();
         
-        if (!data.success) {
+        const response = await apiRequest(`/groups/${groupId}`);
+        
+        if (!response.success) {
             alert('Failed to load group details');
+            closeGroupModal();
             return;
         }
         
-        const group = data.data;
+        const group = response.data;
         
-        // Create modal content
+        // Create modal content with better styling
         const modalContent = `
-            <div style="background: white; padding: 30px; border-radius: 10px; max-width: 700px; max-height: 80vh; overflow-y: auto;">
-                <h2 style="color: #667eea; margin-bottom: 10px;">${group.group_name}</h2>
-                <p style="color: #718096; margin-bottom: 20px;">
-                    Compatibility Score: <strong>${group.compatibility_score.toFixed(3)}</strong> | 
-                    Status: <strong>${group.status}</strong>
-                </p>
+            <div style="background: white; padding: 30px; border-radius: 10px; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative;">
+                <button onclick="closeGroupModal()" style="
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: transparent;
+                    border: none;
+                    font-size: 28px;
+                    cursor: pointer;
+                    color: #718096;
+                    line-height: 1;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                ">&times;</button>
                 
-                <h3 style="margin-top: 20px; margin-bottom: 10px;">Members (${group.members.length})</h3>
-                <div style="margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin: -30px -30px 20px -30px;">
+                    <h2 style="margin: 0 0 10px 0; font-size: 1.8em;">${group.group_name}</h2>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; opacity: 0.95;">
+                        <span>⭐ Compatibility: <strong>${group.compatibility_score.toFixed(3)}</strong></span>
+                        <span>📅 Formed: <strong>${formatDate(group.formation_date)}</strong></span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px;">
+                            <strong>${group.status}</strong>
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #667eea; font-weight: bold;">${group.members.length}</div>
+                        <div style="color: #718096; font-size: 0.9em;">Team Members</div>
+                    </div>
+                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #667eea; font-weight: bold;">${group.tasks.length}</div>
+                        <div style="color: #718096; font-size: 0.9em;">Total Tasks</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                    👥 Team Members
+                </h3>
+                <div style="display: grid; gap: 10px; margin-bottom: 25px;">
                     ${group.members.map(member => `
-                        <div style="padding: 10px; background: #f7fafc; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between;">
-                            <span><strong>${member.first_name} ${member.last_name}</strong></span>
-                            <span style="color: #667eea;">${member.role}</span>
-                            <span>GWA: ${member.gwa}</span>
+                        <div style="padding: 12px 15px; background: #f7fafc; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid ${member.role === 'Leader' ? '#f59e0b' : '#667eea'};">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.5em;">${member.role === 'Leader' ? '👑' : '👤'}</span>
+                                <div>
+                                    <div style="font-weight: 600; color: #2d3748;">${member.first_name} ${member.last_name}</div>
+                                    <div style="font-size: 0.85em; color: #718096;">${member.email}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.75em; text-transform: uppercase; font-weight: 600; color: ${member.role === 'Leader' ? '#f59e0b' : '#667eea'}; margin-bottom: 2px;">
+                                    ${member.role}
+                                </div>
+                                <div style="color: #4a5568; font-weight: 500;">GWA: ${member.gwa}</div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
                 
-                <h3 style="margin-top: 20px; margin-bottom: 10px;">Tasks (${group.tasks.length})</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                    📋 Assigned Tasks
+                </h3>
                 ${group.tasks.length > 0 ? `
-                    <div>
-                        ${group.tasks.map(task => `
-                            <div style="padding: 10px; background: #f7fafc; margin-bottom: 8px; border-radius: 5px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                    <strong>${task.task_name}</strong>
-                                    <span style="color: ${task.status === 'Completed' ? '#48bb78' : '#ed8936'};">${task.status}</span>
+                    <div style="display: grid; gap: 12px;">
+                        ${group.tasks.map(task => {
+                            const statusColors = {
+                                'Pending': '#718096',
+                                'In Progress': '#ed8936',
+                                'Completed': '#48bb78',
+                                'Overdue': '#f56565'
+                            };
+                            const statusColor = statusColors[task.status] || '#718096';
+                            
+                            return `
+                                <div style="padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid ${statusColor}; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                        <div style="font-weight: 600; color: #2d3748; font-size: 1.05em; flex: 1;">${task.task_name}</div>
+                                        <span style="background: ${statusColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.75em; font-weight: 600; white-space: nowrap; margin-left: 10px;">
+                                            ${task.status}
+                                        </span>
+                                    </div>
+                                    <p style="font-size: 0.9em; color: #4a5568; margin: 8px 0; line-height: 1.5;">
+                                        ${task.description || 'No description provided'}
+                                    </p>
+                                    <div style="display: flex; gap: 15px; font-size: 0.85em; color: #718096; margin-top: 10px;">
+                                        <span>⏱️ ${task.estimated_hours}h</span>
+                                        <span>📅 Due: ${formatDate(task.deadline)}</span>
+                                        ${task.complexity_level ? `<span>🎯 ${task.complexity_level}</span>` : ''}
+                                    </div>
                                 </div>
-                                <p style="font-size: 0.9em; color: #4a5568; margin: 5px 0;">${task.description || 'No description'}</p>
-                                <div style="font-size: 0.85em; color: #718096;">
-                                    ⏱️ ${task.estimated_hours}h | 📅 Due: ${task.deadline}
-                                </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
-                ` : '<p style="color: #718096;">No tasks assigned yet</p>'}
+                ` : `
+                    <div style="text-align: center; padding: 40px; color: #718096; background: #f7fafc; border-radius: 8px;">
+                        <div style="font-size: 3em; margin-bottom: 10px;">📝</div>
+                        <p style="margin: 0;">No tasks assigned yet</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9em;">Click "Allocate Tasks" to assign tasks to this group</p>
+                    </div>
+                `}
                 
-                <button onclick="closeGroupModal()" style="
-                    margin-top: 20px;
-                    padding: 10px 20px;
-                    background: #667eea;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                ">Close</button>
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="closeGroupModal()" style="
+                        padding: 10px 24px;
+                        background: #e2e8f0;
+                        color: #2d3748;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 500;
+                    ">Close</button>
+                    ${group.tasks.length === 0 ? `
+                        <button onclick="allocateGroupTasks(${group.id}); closeGroupModal();" style="
+                            padding: 10px 24px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 15px;
+                            font-weight: 500;
+                        ">Allocate Tasks</button>
+                    ` : ''}
+                </div>
             </div>
         `;
         
         // Create modal overlay
-        const modal = document.createElement('div');
+        const modal = document.getElementById('group-details-modal') || document.createElement('div');
         modal.id = 'group-details-modal';
         modal.style.cssText = `
             position: fixed;
@@ -621,11 +703,12 @@ async function viewGroupDetails(groupId) {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 10000;
+            animation: fadeIn 0.2s ease-out;
         `;
         modal.innerHTML = modalContent;
         
@@ -636,12 +719,49 @@ async function viewGroupDetails(groupId) {
             }
         });
         
+        // Close on Escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeGroupModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
         document.body.appendChild(modal);
         
     } catch (error) {
         console.error('Error viewing group details:', error);
         alert('Failed to load group details. Please try again.');
+        closeGroupModal();
     }
+}
+
+/**
+ * Show loading modal
+ */
+function showLoadingModal() {
+    const modal = document.createElement('div');
+    modal.id = 'group-details-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; padding: 40px; border-radius: 10px; text-align: center;">
+            <div style="font-size: 3em; margin-bottom: 15px;">⏳</div>
+            <div style="color: #4a5568; font-size: 1.1em;">Loading group details...</div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 /**
@@ -654,22 +774,27 @@ function closeGroupModal() {
     }
 }
 
-// Make functions globally available
-window.closeGroupModal = closeGroupModal;
-
 /**
  * Allocate tasks to a group
  * @param {number} groupId - Group ID
  */
 async function allocateGroupTasks(groupId) {
-    if (!confirm('Allocate tasks for this group?')) return;
+    if (!confirm('Allocate tasks for this group? This will create and assign 6 sample tasks.')) return;
     
     try {
-        // In a complete implementation, this would call the Coordinator Agent
-        alert('Task allocation feature coming soon!');
+        const response = await apiRequest(`/groups/${groupId}/allocate-tasks`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            alert(`✓ ${response.message}\n\nTasks allocated: ${response.data.tasks_allocated}`);
+            window.location.reload();
+        } else {
+            throw new Error(response.message);
+        }
     } catch (error) {
         console.error('Error allocating tasks:', error);
-        alert('Failed to allocate tasks');
+        alert('Failed to allocate tasks: ' + error.message);
     }
 }
 
@@ -716,7 +841,7 @@ async function updateTaskProgress(taskId, currentProgress) {
  * Initialize page-specific functionality
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('MAS System JavaScript loaded');
+    console.log('✅ MAS System JavaScript initialized');
     
     // Add keyboard navigation support for accessibility
     document.addEventListener('keydown', (e) => {
@@ -747,6 +872,7 @@ window.addSkillEntry = addSkillEntry;
 window.removeSkillEntry = removeSkillEntry;
 window.refreshData = refreshData;
 window.viewGroupDetails = viewGroupDetails;
+window.closeGroupModal = closeGroupModal;
 window.allocateGroupTasks = allocateGroupTasks;
 window.updateTaskProgress = updateTaskProgress;
 window.getAllStudents = getAllStudents;
@@ -754,5 +880,3 @@ window.getAllGroups = getAllGroups;
 window.formGroups = formGroups;
 window.getFacultyDashboard = getFacultyDashboard;
 window.getStudentDashboard = getStudentDashboard;
-
-console.log('✅ MAS System JavaScript initialized');

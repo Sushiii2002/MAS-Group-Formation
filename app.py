@@ -329,6 +329,89 @@ def form_groups():
     except Exception as e:
         return error_response(f"Error forming groups: {str(e)}", 500)
 
+@app.route('/api/groups/<int:group_id>/allocate-tasks', methods=['POST'])
+def allocate_group_tasks(group_id):
+    """Allocate tasks to a specific group using Coordinator Agent"""
+    try:
+        # Verify group exists
+        db = get_db()
+        group_query = "SELECT id, group_name FROM groups WHERE id = ?"
+        group = db.fetch_one(group_query, (group_id,))
+        db.disconnect()
+        
+        if not group:
+            return error_response("Group not found", 404)
+        
+        # Import and run coordinator agent for this group
+        coordinator = CoordinatorAgent()
+        
+        # Connect to database
+        if not coordinator.db.connect():
+            return error_response("Database connection failed", 500)
+        
+        try:
+            # Fetch only this specific group
+            groups_query = """
+            SELECT id, group_name, compatibility_score
+            FROM groups
+            WHERE id = ? AND status = 'Active'
+            """
+            groups = coordinator.db.fetch_all(groups_query, (group_id,))
+            
+            if not groups:
+                coordinator.db.disconnect()
+                return error_response("Group not found or not active", 404)
+            
+            group = groups[0]
+            
+            # Fetch members for this group
+            members_query = """
+            SELECT s.id, s.first_name, s.last_name, s.gwa, gm.role
+            FROM students s
+            JOIN group_members gm ON s.id = gm.student_id
+            WHERE gm.group_id = ?
+            """
+            members = coordinator.db.fetch_all(members_query, (group['id'],))
+            
+            # Fetch skills for each member
+            for member in members:
+                skills_query = """
+                SELECT skill_name, proficiency_level, years_experience
+                FROM technical_skills
+                WHERE student_id = ?
+                """
+                member['skills'] = coordinator.db.fetch_all(skills_query, (member['id'],))
+                member['current_workload'] = 0
+            
+            group['members'] = members
+            
+            # Create sample tasks for this group
+            coordinator.create_sample_tasks(group['id'], num_tasks=6)
+            
+            # Allocate tasks
+            allocations = coordinator.allocate_tasks(group)
+            
+            coordinator.db.disconnect()
+            
+            return success_response(
+                {
+                    'group_id': group_id,
+                    'group_name': group['group_name'],
+                    'tasks_allocated': len(allocations),
+                    'allocations': allocations
+                },
+                f"Successfully allocated {len(allocations)} tasks to {group['group_name']}"
+            )
+            
+        except Exception as e:
+            coordinator.db.disconnect()
+            raise e
+            
+    except Exception as e:
+        print(f"Error allocating tasks: {str(e)}")
+        traceback.print_exc()
+        return error_response(f"Error allocating tasks: {str(e)}", 500)
+
 # ============================================================
 # TASK ENDPOINTS
 # ============================================================

@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MAS Group Formation System{% endblock %}</title>
+    <title>{% block title %}MAS Group Formation{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
@@ -22,15 +23,19 @@
         </div>
     </nav>
 
+    <!-- Main Content -->
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2025 TIP Quezon City - Multi-Agent System for Group Formation</p>
+        <p>&copy; 2024 Multi-Agent System for Group Formation. All rights reserved.</p>
     </footer>
 
+    <!-- Load main.js for global functions -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
+    
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>
